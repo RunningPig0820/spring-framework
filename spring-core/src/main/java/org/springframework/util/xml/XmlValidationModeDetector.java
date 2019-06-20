@@ -35,22 +35,26 @@ import org.springframework.util.StringUtils;
 public class XmlValidationModeDetector {
 
 	/**
+	 * 禁用验证模式
 	 * Indicates that the validation should be disabled.
 	 */
 	public static final int VALIDATION_NONE = 0;
 
 	/**
+	 * 自动获取验证模式
 	 * Indicates that the validation mode should be auto-guessed, since we cannot find
 	 * a clear indication (probably choked on some special characters, or the like).
 	 */
 	public static final int VALIDATION_AUTO = 1;
 
 	/**
+	 * DTD 验证模式
 	 * Indicates that DTD validation should be used (we found a "DOCTYPE" declaration).
 	 */
 	public static final int VALIDATION_DTD = 2;
 
 	/**
+	 * XSD 验证模式
 	 * Indicates that XSD validation should be used (found no "DOCTYPE" declaration).
 	 */
 	public static final int VALIDATION_XSD = 3;
@@ -91,17 +95,23 @@ public class XmlValidationModeDetector {
 		// Peek into the file to look for DOCTYPE.
 		BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
 		try {
+			// 是否为 DTD 校验模式。默认为，非 DTD 模式，即 XSD 模式
 			boolean isDtdValidated = false;
 			String content;
+			//循环，逐行读取 XML 文件的内容
 			while ((content = reader.readLine()) != null) {
+				//TODO 没看
 				content = consumeCommentTokens(content);
+				//如果读取的的行是空或者是注释过的跳过
 				if (this.inComment || !StringUtils.hasText(content)) {
 					continue;
 				}
+				//是否包含 DOCTYPE，如果包含就是 DTD，否则就是 XSD。
 				if (hasDoctype(content)) {
 					isDtdValidated = true;
 					break;
 				}
+				//读取到'<'开始符号，验证模式一定会在开始符号之前
 				if (hasOpeningTag(content)) {
 					// End of meaningful data...
 					break;
@@ -137,6 +147,7 @@ public class XmlValidationModeDetector {
 			return false;
 		}
 		int openTagIndex = content.indexOf('<');
+		// '<' 存在 并且 后面跟着字母，则为 XSD 验证模式
 		return (openTagIndex > -1 && (content.length() > openTagIndex + 1) &&
 				Character.isLetter(content.charAt(openTagIndex + 1)));
 	}
@@ -149,6 +160,7 @@ public class XmlValidationModeDetector {
 	 */
 	@Nullable
 	private String consumeCommentTokens(String line) {
+		//非注释
 		if (!line.contains(START_COMMENT) && !line.contains(END_COMMENT)) {
 			return line;
 		}
