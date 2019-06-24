@@ -35,6 +35,7 @@ import org.springframework.util.StringUtils;
  * resource resides in the file system, but not for resources in a JAR.
  * Always supports resolution as URL.
  *
+ * 通过 class 或者 classLoader 提供的 底层方法进行调用
  * @author Juergen Hoeller
  * @author Sam Brannen
  * @since 28.12.2003

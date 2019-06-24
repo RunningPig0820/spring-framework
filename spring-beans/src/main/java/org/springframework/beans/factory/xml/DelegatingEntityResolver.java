@@ -50,7 +50,7 @@ public class DelegatingEntityResolver implements EntityResolver {
 	private final EntityResolver schemaResolver;
 
 
-	/**
+	/** 默认
 	 * Create a new DelegatingEntityResolver that delegates to
 	 * a default {@link BeansDtdResolver} and a default {@link PluggableSchemaResolver}.
 	 * <p>Configures the {@link PluggableSchemaResolver} with the supplied
@@ -63,7 +63,7 @@ public class DelegatingEntityResolver implements EntityResolver {
 		this.schemaResolver = new PluggableSchemaResolver(classLoader);
 	}
 
-	/**
+	/** 自定义
 	 * Create a new DelegatingEntityResolver that delegates to
 	 * the given {@link EntityResolver EntityResolvers}.
 	 * @param dtdResolver the EntityResolver to resolve DTDs with
@@ -82,9 +82,11 @@ public class DelegatingEntityResolver implements EntityResolver {
 	public InputSource resolveEntity(String publicId, @Nullable String systemId) throws SAXException, IOException {
 		if (systemId != null) {
 			if (systemId.endsWith(DTD_SUFFIX)) {
+				// BeansDtdResolver tdRe 默认 寻找当前路径下的 xx.
 				return this.dtdResolver.resolveEntity(publicId, systemId);
 			}
 			else if (systemId.endsWith(XSD_SUFFIX)) {
+				// PluggableSchemaResolver 默认通过调META-INF/Spring.schemas 解析
 				return this.schemaResolver.resolveEntity(publicId, systemId);
 			}
 		}
