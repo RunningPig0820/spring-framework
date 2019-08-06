@@ -343,10 +343,14 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 	 * and registering it with the registry.
 	 */
 	protected void processBeanDefinition(Element ele, BeanDefinitionParserDelegate delegate) {
-		//委托 BeanDefinitionDelegate#parseBeanDefinitionElement() 进行元素解析，返回 BeanDefinitionHolder 类型,实例化包含文件配置中各个属性
+		// 进行 bean 元素解析。
+		// 如果解析成功，则返回 BeanDefinitionHolder 对象。而 BeanDefinitionHolder 为 name 和 alias 的 BeanDefinition 对象
+		// 如果解析失败，则返回 null 。
+		// 委托 BeanDefinitionDelegate#parseBeanDefinitionElement() 进行元素解析，返回 BeanDefinitionHolder 类型,实例化包含文件配置中各个属性
 		BeanDefinitionHolder bdHolder = delegate.parseBeanDefinitionElement(ele);
 		// 当返回的 bdHolder不为空的情况下若存在默认标签的子节点下再有自定义属性， 还需要 再次对自定义标签进行解析 。
 		if (bdHolder != null) {
+			// 进行自定义标签处理
 			bdHolder = delegate.decorateBeanDefinitionIfRequired(ele, bdHolder);
 			try {
 				// Register the final decorated instance.
