@@ -837,6 +837,7 @@ public class BeanDefinitionParserDelegate {
 		String nameAttr = ele.getAttribute(NAME_ATTRIBUTE);
 		if (StringUtils.hasLength(indexAttr)) {
 			try {
+				// 如果有 index
 				int index = Integer.parseInt(indexAttr);
 				if (index < 0) {
 					error("'index' cannot be lower than 0", ele);
@@ -846,6 +847,7 @@ public class BeanDefinitionParserDelegate {
 						this.parseState.push(new ConstructorArgumentEntry(index));
 						//解析 ele 对应的属性元素
 						Object value = parsePropertyValue(ele, bd, null);
+						//根据解析的属性元素构造一个 ValueHolder 对象
 						ConstructorArgumentValues.ValueHolder valueHolder = new ConstructorArgumentValues.ValueHolder(value);
 						if (StringUtils.hasLength(typeAttr)) {
 							valueHolder.setType(typeAttr);
@@ -859,6 +861,7 @@ public class BeanDefinitionParserDelegate {
 							error("Ambiguous constructor-arg entries for index " + index, ele);
 						}
 						else {
+							// 加入到 indexedArgumentValues 中
 							bd.getConstructorArgumentValues().addIndexedArgumentValue(index, valueHolder);
 						}
 					}
@@ -875,7 +878,9 @@ public class BeanDefinitionParserDelegate {
 			//若没有 index 属性则忽略属性，自动寻找
 			try {
 				this.parseState.push(new ConstructorArgumentEntry());
+				// 解析 ele 对应属性元素
 				Object value = parsePropertyValue(ele, bd, null);
+				// 根据解析的属性元素构造一个 ValueHolder 对象
 				ConstructorArgumentValues.ValueHolder valueHolder = new ConstructorArgumentValues.ValueHolder(value);
 				if (StringUtils.hasLength(typeAttr)) {
 					valueHolder.setType(typeAttr);
@@ -884,6 +889,7 @@ public class BeanDefinitionParserDelegate {
 					valueHolder.setName(nameAttr);
 				}
 				valueHolder.setSource(extractSource(ele));
+				// 加入到 indexedArgumentValues 中
 				bd.getConstructorArgumentValues().addGenericArgumentValue(valueHolder);
 			}
 			finally {
@@ -924,29 +930,39 @@ public class BeanDefinitionParserDelegate {
 	 * Parse a qualifier element.
 	 */
 	public void parseQualifierElement(Element ele, AbstractBeanDefinition bd) {
+		// 解析 type 属性
 		String typeName = ele.getAttribute(TYPE_ATTRIBUTE);
 		if (!StringUtils.hasLength(typeName)) {
+			// 必须有 type
 			error("Tag 'qualifier' must have a 'type' attribute", ele);
 			return;
 		}
 		this.parseState.push(new QualifierEntry(typeName));
 		try {
+			// 创建 AutowireCandidateQualifier 对象
 			AutowireCandidateQualifier qualifier = new AutowireCandidateQualifier(typeName);
 			qualifier.setSource(extractSource(ele));
+			// 解析 value 属性，并设置到 AutowireCandidateQualifier 中
 			String value = ele.getAttribute(VALUE_ATTRIBUTE);
 			if (StringUtils.hasLength(value)) {
 				qualifier.setAttribute(AutowireCandidateQualifier.VALUE_KEY, value);
 			}
+			// 遍历子节点
 			NodeList nl = ele.getChildNodes();
 			for (int i = 0; i < nl.getLength(); i++) {
 				Node node = nl.item(i);
 				if (isCandidateElement(node) && nodeNameEquals(node, QUALIFIER_ATTRIBUTE_ELEMENT)) {
+					// attribute 标签
 					Element attributeEle = (Element) node;
+					// attribute 标签的 key 属性
 					String attributeName = attributeEle.getAttribute(KEY_ATTRIBUTE);
+					// attribute 标签的 value 属性
 					String attributeValue = attributeEle.getAttribute(VALUE_ATTRIBUTE);
 					if (StringUtils.hasLength(attributeName) && StringUtils.hasLength(attributeValue)) {
+						// 创建 BeanMetadataAttribute 对象
 						BeanMetadataAttribute attribute = new BeanMetadataAttribute(attributeName, attributeValue);
 						attribute.setSource(extractSource(attributeEle));
+						// 添加到 attributes 中
 						qualifier.addMetadataAttribute(attribute);
 					}
 					else {
@@ -955,6 +971,7 @@ public class BeanDefinitionParserDelegate {
 					}
 				}
 			}
+
 			bd.addQualifier(qualifier);
 		}
 		finally {
@@ -1053,6 +1070,7 @@ public class BeanDefinitionParserDelegate {
 			return parseNestedCustomElement(ele, bd);
 		}
 		else if (nodeNameEquals(ele, BEAN_ELEMENT)) {
+			// bean 标签
 			BeanDefinitionHolder nestedBd = parseBeanDefinitionElement(ele, bd);
 			if (nestedBd != null) {
 				nestedBd = decorateBeanDefinitionIfRequired(ele, nestedBd, bd);
