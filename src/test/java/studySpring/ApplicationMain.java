@@ -18,5 +18,6 @@ public class ApplicationMain {
 
 		Resource resource = new ClassPathResource("spring.xml");
 		BeanFactory bf = new XmlBeanFactory(resource);
+		bf.getBean("");
 	}
 }

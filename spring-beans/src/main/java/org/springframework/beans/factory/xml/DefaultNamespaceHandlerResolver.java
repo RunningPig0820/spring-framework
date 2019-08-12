@@ -187,6 +187,7 @@ public class DefaultNamespaceHandlerResolver implements NamespaceHandlerResolver
 						}
 						// 初始化到 handlerMappings 中
 						handlerMappings = new ConcurrentHashMap<>(mappings.size());
+						//将 Properties 格式文件合并到 Map 格式的 handlerMapping 中
 						CollectionUtils.mergePropertiesIntoMap(mappings, handlerMappings);
 						this.handlerMappings = handlerMappings;
 					}
