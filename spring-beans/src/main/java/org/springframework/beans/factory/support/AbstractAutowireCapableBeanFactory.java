@@ -476,6 +476,9 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		// Prepare method overrides.
 		// 验证及准备覆盖的方法
+		// Spring 中确实没有 override-method 这样的配置，
+		// 在 Spring 配置中是存在 lookup-method 和 replace-method 的，而这两个配置的加载载其实就是将配置统一存放在 BeanDefinition 中的methodOverrides 属性里，
+		// 而这个函数的操作 其实也就是针对于这两个配置的 。
 		try {
 			mbdToUse.prepareMethodOverrides();
 		}
