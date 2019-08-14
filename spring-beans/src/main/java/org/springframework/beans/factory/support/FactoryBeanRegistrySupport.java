@@ -94,6 +94,7 @@ public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanReg
 	 * @see org.springframework.beans.factory.FactoryBean#getObject()
 	 */
 	protected Object getObjectFromFactoryBean(FactoryBean<?> factory, String beanName, boolean shouldPostProcess) {
+		// 单例判断
 		if (factory.isSingleton() && containsSingleton(beanName)) {
 			synchronized (getSingletonMutex()) {
 				Object object = this.factoryBeanObjectCache.get(beanName);
@@ -158,6 +159,7 @@ public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanReg
 
 		Object object;
 		try {
+			//安全控制
 			if (System.getSecurityManager() != null) {
 				AccessControlContext acc = getAccessControlContext();
 				try {
@@ -168,6 +170,7 @@ public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanReg
 				}
 			}
 			else {
+				//调用 getObject 方法
 				object = factory.getObject();
 			}
 		}
@@ -195,6 +198,10 @@ public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanReg
 	 * The resulting object will get exposed for bean references.
 	 * <p>The default implementation simply returns the given object as-is.
 	 * Subclasses may override this, for example, to apply post-processors.
+	 *
+	 * 尽可能保证所有bean初始化后都会调用注册的 BeanPostProcessor 的 postProcessAfterlnitialization 方法进行处理，
+	 * 在实际开发过程中大可以针 对此特性设计自己的业务逻辑 。
+	 *
 	 * @param object the object obtained from the FactoryBean.
 	 * @param beanName the name of the bean
 	 * @return the object to expose
