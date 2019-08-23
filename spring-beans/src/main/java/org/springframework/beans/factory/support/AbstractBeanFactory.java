@@ -245,6 +245,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 		//提取对应的beanName
 		// 返回 bean 名称，剥离工厂引用前缀。
 		// 如果 name 是 alias ，则获取对应映射的 beanName 。
+		//#2.1 获取 beanName
 		final String beanName = transformedBeanName(name);
 		Object bean;
 
@@ -257,6 +258,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 		 * 也就是 ObjectFactory 加入到缓存中，一旦下个 bean 创建的时候需要上个 bean 则直接使用 ObjectFactory
 		 */
 		//直接尝试从缓存获取或者 singletonFactories 中的 ObjectFactory
+		//#2.2 从单例 Bean 缓存中获取 Bean
 		Object sharedInstance = getSingleton(beanName);
 		if (sharedInstance != null && args == null) {
 			if (logger.isTraceEnabled()) {
@@ -277,19 +279,22 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			// Fail if we're already creating this bean instance:
 			// We're assumably within a circular reference.
 			// 只有在单例的情况下才会尝试解决循环依赖，原型模式下，在原型模式下如果存在循环依赖则会抛出异常。
+			// 2.3 原型模式依赖检查
 			if (isPrototypeCurrentlyInCreation(beanName)) {
 				throw new BeanCurrentlyInCreationException(beanName);
 			}
 
 			// Check if bean definition exists in this factory.
 			// 如果当前容器中没有找到，则从父类容器中加载
+			// 2.4 从 parentBeanFactory 获取 Bean
 			BeanFactory parentBeanFactory = getParentBeanFactory();
 			// 如果 在所有已经加载的类(beanDefinitionMap)中不包括 beanName，则尝试从 parentBeanFactory
 			if (parentBeanFactory != null && !containsBeanDefinition(beanName)) {
 				// Not found -> check parent.
+				// TODO 不能理解
 				String nameToLookup = originalBeanName(name);
 				// 如果，父类容器为 AbstractBeanFactory ，直接递归查找
-				if (parentBeanFactory instanceof AbstractBeanFactory) {
+		 		if (parentBeanFactory instanceof AbstractBeanFactory) {
 					return ((AbstractBeanFactory) parentBeanFactory).doGetBean(
 							nameToLookup, requiredType, args, typeCheckOnly);
 				}
@@ -310,6 +315,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			}
 
 			//如果不是仅仅做类型检查则是创建 bean， 这里要进行记录
+			// 2.5 指定的 Bean 标记为已经创建或即将创建
 			if (!typeCheckOnly) {
 				markBeanAsCreated(beanName);
 			}
@@ -318,15 +324,20 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				// 因为从 XML 配置文件中读取到的 Bean 信息是存储在GenericBeanDefinition 中的。但是，所有的 Bean 后续处理都是针对于 RootBeanDefinition 的，所以这里需要进行一个转换。
 				// 将存储 XML 配置文件的 GernericBeanDefinition 转换为 RootBeanDefinition，
 				// 如果指定 BeanName 是子 Bean 的话同时会合并父类的相关属性
+				// 2.6 获取 BeanDefinition
 				final RootBeanDefinition mbd = getMergedLocalBeanDefinition(beanName);
 				// 检查给定的合并的 BeanDefinition
 				checkMergedBeanDefinition(mbd, beanName, args);
 
 				// Guarantee initialization of beans that the current bean depends on.
+				// 每个 Bean 都不是单独工作的，它会依赖其他 Bean，其他 Bean 也会依赖它。
+				// 对于依赖的 Bean ，它会优先加载，所以，在 Spring 的加载顺序中，在初始化某一个 Bean 的时候，首先会初始化这个 Bean 的依赖。
+
 				// 处理所依赖的 bean
+				//2.7 依赖 Bean 处理
 				String[] dependsOn = mbd.getDependsOn();
 				// 若存在依赖则需要递归实例化依赖的 bean
-				// 即循环依赖的情况，抛出 BeanCreationException 异常
+				// 即循1
 				if (dependsOn != null) {
 					for (String dep : dependsOn) {
 						// 若给定的依赖bean 已经注册为依赖给定的bean
@@ -338,6 +349,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 						//缓存依赖调用
 						registerDependentBean(dep, beanName);
 						try {
+							// 递归处理依赖 Bean
 							getBean(dep);
 						}
 						catch (NoSuchBeanDefinitionException ex) {
@@ -349,6 +361,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 
 				// Create bean instance.
 				// 实例化依赖的 bean 后便可以实例化 mbd 本身了
+				// 2.8 不同作用域的 Bean 实例化
 				// singleton 实例化
 				if (mbd.isSingleton()) {
 					sharedInstance = getSingleton(beanName, () -> {
@@ -417,6 +430,9 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 
 		// Check if required type matches the type of the actual bean instance.
 		// 检查需要的类型是否符合 bean 的实际类型
+		//调用 #doGetBean(...) 方法时，有一个 requiredType 参数。该参数的功能就是将返回的 Bean 转换为 requiredType 类型。
+		//当然就一般而言，我们是不需要进行类型转换的，也就是 requiredType 为空（比如 #getBean(String name) 方法）。但有，可能会存在这种情况，比如我们返回的 Bean 类型为 String ，我们在使用的时候需要将其转换为 Integer，那么这个时候 requiredType 就有用武之地了。当然我们一般是不需要这样做的。
+		// 2.9 类型转换
 		if (requiredType != null && !requiredType.isInstance(bean)) {
 			try {
 				// 执行转换
