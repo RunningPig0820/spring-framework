@@ -272,6 +272,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			}
 			// 返回对应的实例，有时候存在诸如BeanFactory的情况，并不是直接返回实例本身而是返回指定方法返回的实例
 			// 完成 FactoryBean 的相关处理，并用来获取 FactoryBean 的处理结果
+			// 该方法的定义为获取给定 Bean 实例的对象，该对象要么是 bean 实例本身，要么就是 FactoryBean 创建的 Bean 对象。
 			bean = getObjectForBeanInstance(sharedInstance, name, beanName, null);
 		}
 
@@ -1677,9 +1678,11 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 		// Don't let calling code try to dereference the factory if the bean isn't a factory.
 		// 如果指定的name 是工厂相关(已&为前缀) 且bean Instance又不是FactoryBean 类型验证不通过
 		if (BeanFactoryUtils.isFactoryDereference(name)) {
+			// 如果是 NullBean,则直接返回
 			if (beanInstance instanceof NullBean) {
 				return beanInstance;
 			}
+			// 如果 beanInstance 不是 FactoryBean 类型，则抛出异常
 			if (!(beanInstance instanceof FactoryBean)) {
 				throw new BeanIsNotAFactoryException(transformedBeanName(name), beanInstance.getClass());
 			}
@@ -1689,8 +1692,8 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 		// If it's a FactoryBean, we use it to create a bean instance, unless the
 		// caller actually wants a reference to the factory.
 		// 现在我们有了个bean实例，这个实例可能会是正常的 bean 或者是 FactoryBean
-		// 如果是 FactoryBean 我们使用它创建实例，但是如果用户想要直接获取工厂实例
-		// 而不是工厂的getObject方法对应里的实例那么传入的应该加入前缀 &
+		// 如果是 FactoryBean 我们使用它创建实例，
+		// 但是如果用户想要直接获取工厂实例，而不是工厂的getObject方法对应里的实例那么传入的应该加入前缀 &
 		if (!(beanInstance instanceof FactoryBean) || BeanFactoryUtils.isFactoryDereference(name)) {
 			return beanInstance;
 		}
@@ -1701,6 +1704,9 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			//尝试从缓存中加载 bean
 			object = getCachedObjectForFactoryBean(beanName);
 		}
+
+		// 若 object 依然为空，则可以确认，beanInstance 一定是 FactoryBean 。
+		// 从而使用 FactoryBean 获得 Bean 对象
 		if (object == null) {
 			// Return bean instance from factory.
 			FactoryBean<?> factory = (FactoryBean<?>) beanInstance;
@@ -1713,6 +1719,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			}
 			// 是否是用户定义的而不是应用程序本身定义的
 			boolean synthetic = (mbd != null && mbd.isSynthetic());
+			// 核心处理方法，使用 FactoryBean 获得 Bean 对象
 			object = getObjectFromFactoryBean(factory, beanName, !synthetic);
 		}
 		return object;
