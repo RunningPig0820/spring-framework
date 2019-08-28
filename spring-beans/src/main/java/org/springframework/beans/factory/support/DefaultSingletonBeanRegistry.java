@@ -77,6 +77,11 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 
 	/** Cache of singleton factories: bean name to ObjectFactory.
 	 *  用于存储BeanName和创建bean的工厂之间的关系ObjectFactory beanName -> bean instance
+	 *
+	 *  与 {@link #singletonObjects} 的区别区别在，于 earlySingletonObjects 中存放的 bean 不一定是完整的。
+	 *  从 {@link #getSingleton(String)} 方法中，中我们可以了解，bean 在创建过程中就已经加入到 earlySingletonObjects 中了，
+	 *  所以当在 bean 的创建过程中就可以通过 getBean() 方法获取。
+	 *  这个 Map 也是解决【循环依赖】的关键所在。
 	 **/
 	private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<>(16);
 
@@ -88,6 +93,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 
 	/** Set of registered singletons, containing the bean names in registration order.
 	 *  用来保存当前所有已注册的 bean
+	 *  存放的是 ObjectFactory 的映射，可以理解为创建单例 bean 的 factory 。
 	 * */
 	private final Set<String> registeredSingletons = new LinkedHashSet<>(256);
 
@@ -230,9 +236,10 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	 */
 	public Object getSingleton(String beanName, ObjectFactory<?> singletonFactory) {
 		Assert.notNull(beanName, "Bean name must not be null");
+		// 全局加锁
 		synchronized (this.singletonObjects) {
 			//检测对应的 bean 是否已经加载过，
-			// singleton 模式就是复用以创建 bean
+			// singleton 模式就是复用已经创建 bean
 			Object singletonObject = this.singletonObjects.get(beanName);
 			//如果为空才可以进行 singleton 的 bean 的初始化
 			if (singletonObject == null) {
