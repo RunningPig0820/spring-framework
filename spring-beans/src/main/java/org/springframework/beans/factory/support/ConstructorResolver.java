@@ -117,11 +117,16 @@ class ConstructorResolver {
 	public BeanWrapper autowireConstructor(String beanName, RootBeanDefinition mbd,
 			@Nullable Constructor<?>[] chosenCtors, @Nullable Object[] explicitArgs) {
 
+		// 封装 BeanWrapperImpl 对象，并完成初
 		BeanWrapperImpl bw = new BeanWrapperImpl();
 		this.beanFactory.initBeanWrapper(bw);
 
+		// 获得 constructorToUse、argsHolderToUse、argsToUse
+		// 构造函数
 		Constructor<?> constructorToUse = null;
+		// 构造参数
 		ArgumentsHolder argsHolderToUse = null;
+		// 构造参数
 		Object[] argsToUse = null;
 
 		/** 1. 构造函数参数确定
@@ -138,6 +143,7 @@ class ConstructorResolver {
 			Object[] argsToResolve = null;
 			// 尝试从缓存中获取
 			synchronized (mbd.constructorArgumentLock) {
+				// 缓存中的构造函数或者工厂方法
 				constructorToUse = (Constructor<?>) mbd.resolvedConstructorOrFactoryMethod;
 				if (constructorToUse != null && mbd.constructorArgumentsResolved) {
 					// Found a cached constructor...
@@ -152,9 +158,10 @@ class ConstructorResolver {
 					}
 				}
 			}
-			// 如果缓存中存在
+			// 如果缓存中存在，则解析存储在 BeanDefinition 中的参数
+			// 如给定方法的构造函数 A(int ,int )，则通过此方法后就会把配置文件中的("1","1")转换为 (1,1)
+			// 缓存中的值可能是原始值也有可能是最终值
 			if (argsToResolve != null) {
-				//解析参数类型，如给定方法的构造函数 A(int,int)则通过此方法后就会把配置中的 (”1”，”l”)转换为 (1,1)
 				/*
 			     *	3. 根据确定的构造函 数转换对应 的参数类型
 			     *	主要是使用 Spring 中提供的类型 转换器或者用户提供的自定义类型转换器进行转换 。
@@ -184,6 +191,7 @@ class ConstructorResolver {
 				}
 			}
 
+			//创建 Bean
 			if (candidates.length == 1 && explicitArgs == null && !mbd.hasConstructorArgumentValues()) {
 				Constructor<?> uniqueCandidate = candidates[0];
 				if (uniqueCandidate.getParameterCount() == 0) {
@@ -198,8 +206,10 @@ class ConstructorResolver {
 			}
 
 			// Need to resolve the constructor.
+			// 是否需要解析构造器
 			boolean autowiring = (chosenCtors != null ||
 					mbd.getResolvedAutowireMode() == AutowireCapableBeanFactory.AUTOWIRE_CONSTRUCTOR);
+			// 用于承载解析后的构造函数参数的值
 			ConstructorArgumentValues resolvedValues = null;
 
 			int minNrOfArgs;
@@ -212,6 +222,7 @@ class ConstructorResolver {
 				// 用于承载解析后的构造函数参数的值
 				resolvedValues = new ConstructorArgumentValues();
 				// 能解析到的参数个数
+				// 将该 bean 的构造函数参数解析为 resolvedValues 对象，其中会涉及到其他 bean
 				minNrOfArgs = resolveConstructorArguments(beanName, mbd, bw, cargs, resolvedValues);
 			}
 
@@ -224,11 +235,15 @@ class ConstructorResolver {
 			 * 构造函数、参数名称、参数类型、参数值 都确定后就可以锁定构造函数以及转换对应的参数类型了 。
 			 */
 			AutowireUtils.sortConstructors(candidates);
+
+			// 最小参数类型权重
 			int minTypeDiffWeight = Integer.MAX_VALUE;
 			Set<Constructor<?>> ambiguousConstructors = null;
 			LinkedList<UnsatisfiedDependencyException> causes = null;
 
+			// 迭代所有构造函数
 			for (Constructor<?> candidate : candidates) {
+				// 获取该构造函数的参数类型
 				Class<?>[] paramTypes = candidate.getParameterTypes();
 
 				if (constructorToUse != null && argsToUse.length > paramTypes.length) {
@@ -243,7 +258,7 @@ class ConstructorResolver {
 					continue;
 				}
 
-
+				// 参数持有者 ArgumentsHolder 对象
 				ArgumentsHolder argsHolder;
 				if (resolvedValues != null) {
 					//有参数则根据值构造对应参数类型的参数
@@ -283,6 +298,9 @@ class ConstructorResolver {
 					argsHolder = new ArgumentsHolder(explicitArgs);
 				}
 
+				// 严格模式：解析构造函数时，必须所有的都需要匹配，否则抛出异常
+				// 宽松模式：使用具有"最接近的模式"进行匹配
+				// typeDiffWeight：类型差异权重
 				//4. 构造函数不确定性的验证 。
 				//探测是否举要不确定性的构造函数存在。例如不同构造器函数的参数为父子关系
 				int typeDiffWeight = (mbd.isLenientConstructorResolution() ?
@@ -305,6 +323,7 @@ class ConstructorResolver {
 				}
 			}
 
+			// 没有可执行的工厂方法，抛出异常
 			if (constructorToUse == null) {
 				if (causes != null) {
 					UnsatisfiedDependencyException ex = causes.removeLast();
@@ -428,16 +447,22 @@ class ConstructorResolver {
 	public BeanWrapper instantiateUsingFactoryMethod(
 			String beanName, RootBeanDefinition mbd, @Nullable Object[] explicitArgs) {
 
+		// 构造 BeanWrapperImpl 对象
 		BeanWrapperImpl bw = new BeanWrapperImpl();
+		// 初始化 BeanWrapperImpl
+		// 向BeanWrapper对象中添加 ConversionService 对象和属性编辑器 PropertyEditor 对象
 		this.beanFactory.initBeanWrapper(bw);
 
+		// <1> 获得 factoryBean、factoryClass、isStatic、factoryBeanName 属性
 		Object factoryBean;
 		Class<?> factoryClass;
 		boolean isStatic;
 
 		String factoryBeanName = mbd.getFactoryBeanName();
+		// 工厂名不为空
 		if (factoryBeanName != null) {
 			if (factoryBeanName.equals(beanName)) {
+				// 抛出 BeanDefinitionStoreException 异常
 				throw new BeanDefinitionStoreException(mbd.getResourceDescription(), beanName,
 						"factory-bean reference points back to the same bean definition");
 			}
